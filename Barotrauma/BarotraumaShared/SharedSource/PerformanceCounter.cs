@@ -52,6 +52,39 @@ namespace Barotrauma
             }
         }
 
+        /// <summary>
+        /// Managed memory allocated by the calling thread (the main thread, when called from the game loop) per second,
+        /// in kilobytes. Diagnostic only: shown in the `showperf` overlay to spot allocation-heavy code paths.
+        /// </summary>
+        public double AllocatedKilobytesPerSecond { get; private set; }
+        public double Gen0CollectionsPerSecond { get; private set; }
+        public double Gen1CollectionsPerSecond { get; private set; }
+        public double Gen2CollectionsPerSecond { get; private set; }
+
+        private long lastAllocatedBytes = -1;
+        private int lastGen0Count, lastGen1Count, lastGen2Count;
+
+        /// <summary>
+        /// Call once per measurement interval from the thread whose allocations should be measured.
+        /// </summary>
+        /// <param name="elapsedSeconds">Time since the previous call.</param>
+        public void SampleGcStats(double elapsedSeconds)
+        {
+            long allocatedBytes = System.GC.GetAllocatedBytesForCurrentThread();
+            int gen0 = System.GC.CollectionCount(0), gen1 = System.GC.CollectionCount(1), gen2 = System.GC.CollectionCount(2);
+            if (lastAllocatedBytes >= 0 && elapsedSeconds > 0.0)
+            {
+                AllocatedKilobytesPerSecond = (allocatedBytes - lastAllocatedBytes) / 1024.0 / elapsedSeconds;
+                Gen0CollectionsPerSecond = (gen0 - lastGen0Count) / elapsedSeconds;
+                Gen1CollectionsPerSecond = (gen1 - lastGen1Count) / elapsedSeconds;
+                Gen2CollectionsPerSecond = (gen2 - lastGen2Count) / elapsedSeconds;
+            }
+            lastAllocatedBytes = allocatedBytes;
+            lastGen0Count = gen0;
+            lastGen1Count = gen1;
+            lastGen2Count = gen2;
+        }
+
         public PerformanceCounter()
         {
             timer.Start();

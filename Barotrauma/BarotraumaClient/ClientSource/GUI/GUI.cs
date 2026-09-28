@@ -432,6 +432,13 @@ namespace Barotrauma
                         DrawString(spriteBatch, new Vector2(x, y), "Grids: " + Powered.Grids.Count, Color.LightGreen, Color.Black * 0.5f, 0, GUIStyle.SmallFont);
                         y += yStep;
                     }
+                    DrawString(spriteBatch, new Vector2(x, y),
+                        "Alloc (main thread): " + GameMain.PerformanceCounter.AllocatedKilobytesPerSecond.ToString("0") + " KB/s" +
+                        "  GC/s gen0/1/2: " + GameMain.PerformanceCounter.Gen0CollectionsPerSecond.ToString("0.0") + "/" +
+                        GameMain.PerformanceCounter.Gen1CollectionsPerSecond.ToString("0.0") + "/" +
+                        GameMain.PerformanceCounter.Gen2CollectionsPerSecond.ToString("0.0"),
+                        Color.LightGreen, Color.Black * 0.5f, 0, GUIStyle.SmallFont);
+                    y += yStep;
                     if (Settings.EnableDiagnostics)
                     {
                         x += yStep * 2;

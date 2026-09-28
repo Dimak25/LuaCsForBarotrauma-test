@@ -1072,6 +1072,7 @@ namespace Barotrauma
             if (performanceCounterTimer.ElapsedMilliseconds > 1000)
             {
                 CurrentUpdateRate = (int)Math.Round(updateCount / (double)(performanceCounterTimer.ElapsedMilliseconds / 1000.0));
+                PerformanceCounter.SampleGcStats(performanceCounterTimer.ElapsedMilliseconds / 1000.0);
                 performanceCounterTimer.Restart();
                 updateCount = 0;
             }
