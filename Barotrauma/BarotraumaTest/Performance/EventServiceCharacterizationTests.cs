@@ -403,19 +403,36 @@ public sealed class EventServiceCharacterizationTests
     }
 
     [Fact]
-    public void Quirk_LegacyEvent_TupleResult_IsConvertedAsAWhole_NotByItsFirstValue()
+    public void Quirk_LegacyEvent_TupleResult_ConvertsAsAWhole_ForObject()
     {
         // A Lua function returning several values (`return "first", true`) reaches Call<T> as one tuple, and the
-        // whole tuple is converted: T=object yields a DynValue[], and T=string / T=double yield the default.
-        // The "first value wins" reading of the code (`Tuple[0]`) is NOT what happens today.
+        // WHOLE tuple is converted (`luaResult.ToObject<T>()`), not its first value: with T=object the caller gets a
+        // DynValue[]. The "first value wins" reading of the code (`Tuple[0]`) is not what happens.
         var (service, _, _) = New();
         service.Add("tuple.event", "id", _ => DynValue.NewTuple(DynValue.NewString("first"), DynValue.NewBoolean(true)));
 
-        service.Call<string>("tuple.event").Should().BeNull();
-        service.Call<double>("tuple.event").Should().Be(0);
         var asObject = service.Call("tuple.event");
+
         asObject.Should().BeOfType<DynValue[]>();
         ((DynValue[])asObject).Select(v => v.ToObject()).Should().Equal("first", true);
+    }
+
+    [Fact]
+    public void Quirk_LegacyEvent_TupleResult_CannotBeConvertedToATypedResult()
+    {
+        // The conversion of a tuple to string/double throws a MoonSharp ScriptRuntimeException inside Call<T>.
+        // Release: the exception is caught, logged as an error, and Call returns default(T).
+        // Debug: EventService rethrows it ("#if DEBUG throw;").
+        var (service, logger, _) = New();
+        service.Add("tuple.event", "id", _ => DynValue.NewTuple(DynValue.NewString("first"), DynValue.NewBoolean(true)));
+
+#if DEBUG
+        ((Action)(() => service.Call<string>("tuple.event"))).Should().Throw<ScriptRuntimeException>();
+#else
+        service.Call<string>("tuple.event").Should().BeNull();
+        service.Call<double>("tuple.event").Should().Be(0);
+        ErrorCount(logger).Should().Be(2);
+#endif
     }
 
     [Fact]
